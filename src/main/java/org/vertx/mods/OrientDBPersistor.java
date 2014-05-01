@@ -44,9 +44,8 @@ public class OrientDBPersistor extends BusModBase implements Handler<Message<Jso
 		super.start();
 		database = ODatabaseDocumentPool.global().acquire("remote:localhost/CBWeb", "admin", "admin");
 		ODatabaseRecordThreadLocal.INSTANCE.set(database);
+		// TODO AD
 		address = "odb";// getOptionalStringConfig("address", "vertx.orientdbpersistor");
-		// connect db
-		// eb.registerHandler(address, this);
 
 		vertx.eventBus().registerHandler("odb", this);
 
@@ -68,8 +67,6 @@ public class OrientDBPersistor extends BusModBase implements Handler<Message<Jso
 			sendError(message, "action must be specified");
 			return;
 		}
-		// Note actions should not be in camel case, but should use underscores
-		// I have kept the version with camel case so as not to break compatibility
 
 		switch (action)
 		{
@@ -109,6 +106,7 @@ public class OrientDBPersistor extends BusModBase implements Handler<Message<Jso
 			{
 				doc = getDatabase().load(new ORecordId(rid));
 			}
+
 			message.reply(new JsonObject(doc.toJSON("fetchPlan:*:-1,rid,class,type,version,attribSameRow,alwaysFetchEmbedded")));
 		}
 		catch (Exception e)
@@ -129,6 +127,7 @@ public class OrientDBPersistor extends BusModBase implements Handler<Message<Jso
 			List<ODocument> resultset = getDatabase().query(
 					new OSQLSynchQuery<ODocument>(String.format("select from %s where %s", className, criteria)).setFetchPlan(fetchPlan));
 			getDatabase().commit();
+
 			message.reply(new JsonArray(OJSONWriter.listToJSON(resultset, "fetchPlan:*:-1,rid,class,type,version,attribSameRow,alwaysFetchEmbedded")));
 		}
 		catch (Exception e)
@@ -144,6 +143,7 @@ public class OrientDBPersistor extends BusModBase implements Handler<Message<Jso
 			String className = getMandatoryString("className", message);
 			ODocument doc = getDatabase().newInstance();
 			doc.setClassName(className);
+
 			message.reply(new JsonObject(doc.toJSON("fetchPlan:*:-1,rid,class,type,version,attribSameRow,alwaysFetchEmbedded")));
 		}
 		catch (Exception e)
@@ -162,11 +162,12 @@ public class OrientDBPersistor extends BusModBase implements Handler<Message<Jso
 			ODocument doc = new ODocument();
 			doc.fromJSON(jsonToSave.toString());
 
-			// TODO CLUSTERS
+			// TODO AD CLUSTERS
 			getDatabase().save(doc, doc.getClassName());
 			getDatabase().commit();
 			message.body().putString("fetchPlan", "*:-1");
 			message.body().putString("rid", doc.getIdentity().toString());
+
 			findByRID(message);
 		}
 		catch (Exception e)
@@ -183,6 +184,7 @@ public class OrientDBPersistor extends BusModBase implements Handler<Message<Jso
 		doc.fromJSON(jsonToDelete.toString());
 		getDatabase().delete(doc.getIdentity());
 		getDatabase().commit();
+
 		newGraph(message);
 	}
 

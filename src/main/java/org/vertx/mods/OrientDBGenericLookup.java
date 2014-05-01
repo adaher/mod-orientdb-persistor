@@ -46,7 +46,6 @@ public class OrientDBGenericLookup extends BusModBase implements Handler<Message
 		{
 			case "fetchByQuery":
 				fetchByQuery(message);
-
 				break;
 			default:
 				sendError(message, "Invalid action: " + action);
@@ -55,19 +54,11 @@ public class OrientDBGenericLookup extends BusModBase implements Handler<Message
 
 	private void fetchByQuery(Message<JsonObject> message)
 	{
-		long timer = System.currentTimeMillis();
 		OSQLSynchQuery<ODocument> osqlSynchQuery = new OSQLSynchQuery<ODocument>(message.body().getString("query"));
 		osqlSynchQuery.setFetchPlan(message.body().getString("fetchPlan"));
 		List<ODocument> query = database.query(osqlSynchQuery);
-		System.out.println("After fetch  - " + (System.currentTimeMillis() - timer));
-		// String listToJSON = OJSONWriter.listToJSON(query, "fetchPlan:*:-1,rid,class,type,version,attribSameRow,alwaysFetchEmbedded");
-		String listToJSON = OJSONWriter.listToJSON(query, "");
 
-		System.out.println("After listToJSON  - " + (System.currentTimeMillis() - timer));
-		JsonArray message2 = new JsonArray(listToJSON);
-		System.out.println("After JsonArray  - " + (System.currentTimeMillis() - timer));
-
-		message.reply(message2);
+		message.reply(new JsonArray(OJSONWriter.listToJSON(query, "")));
 	}
 
 }
