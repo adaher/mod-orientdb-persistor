@@ -29,6 +29,7 @@ import com.orientechnologies.orient.core.db.document.ODatabaseDocument;
 import com.orientechnologies.orient.core.db.document.ODatabaseDocumentPool;
 import com.orientechnologies.orient.core.db.record.ODatabaseRecord;
 import com.orientechnologies.orient.core.id.ORecordId;
+import com.orientechnologies.orient.core.record.ORecordInternal;
 import com.orientechnologies.orient.core.record.impl.ODocument;
 import com.orientechnologies.orient.core.serialization.serializer.OJSONWriter;
 import com.orientechnologies.orient.core.sql.query.OSQLSynchQuery;
@@ -59,7 +60,6 @@ public class OrientDBPersistor extends BusModBase implements Handler<Message<Jso
 	@Override
 	public void handle(Message<JsonObject> message)
 	{
-
 		String action = message.body().getString("action");
 
 		if (action == null)
@@ -123,7 +123,6 @@ public class OrientDBPersistor extends BusModBase implements Handler<Message<Jso
 			String criteria = getMandatoryString("criteria", message);
 			String fetchPlan = getMandatoryString("fetchPlan", message);
 
-			getDatabase().begin();
 			List<ODocument> resultset = getDatabase().query(
 					new OSQLSynchQuery<ODocument>(String.format("select from %s where %s", className, criteria)).setFetchPlan(fetchPlan));
 			getDatabase().commit();
@@ -158,15 +157,14 @@ public class OrientDBPersistor extends BusModBase implements Handler<Message<Jso
 		{
 			JsonObject jsonToSave = getMandatoryObject("jsonToSave", message);
 
-			getDatabase().begin();
 			ODocument doc = new ODocument();
 			doc.fromJSON(jsonToSave.toString());
 
 			// TODO AD CLUSTERS
-			getDatabase().save(doc, doc.getClassName());
+			ORecordInternal<?> savedDoc = getDatabase().save(doc, doc.getClassName());
 			getDatabase().commit();
 			message.body().putString("fetchPlan", "*:-1");
-			message.body().putString("rid", doc.getIdentity().toString());
+			message.body().putString("rid", savedDoc.getIdentity().toString());
 
 			findByRID(message);
 		}
@@ -179,7 +177,8 @@ public class OrientDBPersistor extends BusModBase implements Handler<Message<Jso
 	public void deleteGraph(Message<JsonObject> message)
 	{
 		JsonObject jsonToDelete = getMandatoryObject("jsonToDelete", message);
-		getDatabase().begin();
+		String className = getMandatoryString("className", message);
+
 		ODocument doc = new ODocument();
 		doc.fromJSON(jsonToDelete.toString());
 		getDatabase().delete(doc.getIdentity());
